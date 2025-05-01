@@ -88,7 +88,7 @@ declare function convertDBCsvToExcel<DBColumns>(
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
 | `dbColumns` | `DBColumn[]` | Database column definitions | *Required* |
-| `excelColumns` | `ExcelColumn[]` | Excel column definitions | *Required* |
+| `excelColumns` | `ExcelColumn[]` \| `(firstRow?: DBRow) => ExcelColumn[]` | Excel column definitions, either as array or function that gets first row | *Required* |
 | `aesKey` | `string` | Encryption key for AES-encrypted columns | `''` (Required if any column has `encrypted: true`) |
 | `sortFns` | `Array<(row) => number>` | Functions to determine sort order | `[]` |
 | `sortMode` | `'asc'` \| `'desc'` | Sort direction | `'desc'` |
@@ -162,6 +162,31 @@ await convertDBCsvToExcel(
     ],
     // Ascending order
     sortMode: 'asc',
+  },
+)
+```
+
+### Dynamic Excel Columns
+
+You can generate Excel columns dynamically based on the first row of data:
+
+```typescript
+await convertDBCsvToExcel(
+  'input.csv',
+  'output.xlsx',
+  {
+    dbColumns: [/* ... */],
+    // Generate columns dynamically based on first row
+    excelColumns: (firstRow) => {
+      // Example: Create a column for each property in the first row
+      if (!firstRow) return []
+
+      return Object.keys(firstRow).map(key => ({
+        title: key.toUpperCase(),
+        from: row => row[key],
+        width: 15,
+      }))
+    },
   },
 )
 ```

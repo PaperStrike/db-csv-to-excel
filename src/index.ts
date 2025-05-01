@@ -35,7 +35,7 @@ export type SortModeValue = typeof SortMode[keyof typeof SortMode]
 
 interface ConvertParamsBase<DBColumns extends readonly DBColumn[]> {
   dbColumns: DBColumns
-  excelColumns: readonly ExcelColumn<DBColumns>[]
+  excelColumns: readonly ExcelColumn<DBColumns>[] | ((firstRow: DBRow<DBColumns> | undefined) => readonly ExcelColumn<DBColumns>[])
   sortFns?: ((row: DBRow<DBColumns>) => number)[]
   sortMode?: SortModeValue
   titleStyle?: CellStyle
@@ -96,7 +96,11 @@ export const convertDBCsvToExcel = async <
     },
   }) as DBRow<DBColumns>[]
 
-  const excelTitleRow: xlsx.CellObject[] = excelColumns.map(col => ({
+  const parsedExcelColumns = typeof excelColumns === 'function'
+    ? excelColumns(dbRows[0])
+    : excelColumns
+
+  const excelTitleRow: xlsx.CellObject[] = parsedExcelColumns.map(col => ({
     v: col.title,
     t: 's',
     s: col.titleStyle ?? titleStyle,
@@ -126,11 +130,11 @@ export const convertDBCsvToExcel = async <
   }
 
   const excelContentRows: xlsx.CellObject[][] = dbRows
-    .map(row => excelColumns.map(col => ({ v: col.from(row) ?? '', t: 's', s: col.contentStyle ?? contentStyle })))
+    .map(row => parsedExcelColumns.map(col => ({ v: col.from(row) ?? '', t: 's', s: col.contentStyle ?? contentStyle })))
 
   const book = xlsx.utils.book_new()
   const sheet = xlsx.utils.aoa_to_sheet([excelTitleRow, ...excelContentRows])
-  sheet['!cols'] = excelColumns.map(col => ({ wch: col.width }))
+  sheet['!cols'] = parsedExcelColumns.map(col => ({ wch: col.width }))
   xlsx.utils.book_append_sheet(book, sheet)
 
   const outputFileData = xlsx.write(book, {

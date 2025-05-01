@@ -1,6 +1,6 @@
 {
   "name": "db-csv-to-excel",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Convert database .csv to .xlsx",
   "type": "module",
   "main": "./build/index.js",
